@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KZ RareTracker-SW — Loot Database</title>
+  <style>
+    :root {
+      --bg:       #0a0806;
+      --bg2:      #130f08;
+      --bg3:      #1c160e;
+      --border:   #6b5a2a;
+      --gold:     #ffd700;
+      --text:     #d4b483;
+      --muted:    #888;
+      --mob:      #ff8000;
+      --q0: #9d9d9d; --q1: #ffffff; --q2: #1eff00;
+      --q3: #0070dd; --q4: #a335ee; --q5: #ff8000;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(180deg, #1a1208 0%, #0a0806 100%);
+      border-bottom: 2px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    header h1 { color: var(--gold); font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }
+    header span { color: var(--muted); font-size: 13px; }
+    .badge {
+      background: #2a1f08; border: 1px solid var(--border);
+      color: var(--gold); font-size: 11px; padding: 2px 8px; border-radius: 4px;
+    }
+
+    main {
+      max-width: 1100px; margin: 0 auto; padding: 28px 24px;
+      display: grid; grid-template-columns: 380px 1fr; gap: 24px;
+    }
+    @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 20px;
+    }
+    .card h2 {
+      color: var(--gold); font-size: 15px; margin-bottom: 14px;
+      padding-bottom: 8px; border-bottom: 1px solid #2a2010;
+    }
+
+    textarea {
+      width: 100%; background: #05030200; border: 1px solid var(--border);
+      border-radius: 4px; color: var(--text); font-family: 'Courier New', monospace;
+      font-size: 12px; padding: 10px; resize: vertical; min-height: 80px;
+      outline: none; transition: border-color 0.2s;
+    }
+    textarea:focus { border-color: var(--gold); }
+    textarea::placeholder { color: #555; }
+
+    .btn {
+      display: inline-block; padding: 8px 18px; border-radius: 4px;
+      border: none; cursor: pointer; font-size: 13px; font-weight: 600;
+      transition: all 0.15s; text-decoration: none;
+    }
+    .btn-gold {
+      background: linear-gradient(180deg, #6b4f10 0%, #3d2d08 100%);
+      border: 1px solid var(--gold); color: var(--gold);
+    }
+    .btn-gold:hover { background: linear-gradient(180deg, #8a6414 0%, #5a4210 100%); }
+    .btn-green {
+      background: linear-gradient(180deg, #0e3a12 0%, #071a09 100%);
+      border: 1px solid #1eff00; color: #1eff00;
+    }
+    .btn-green:hover { background: linear-gradient(180deg, #185a1e 0%, #0e2e12 100%); }
+    .btn-blue {
+      background: linear-gradient(180deg, #0a2040 0%, #05101f 100%);
+      border: 1px solid #0070dd; color: #5ab4ff;
+    }
+    .btn-blue:hover { background: linear-gradient(180deg, #103060 0%, #081828 100%); }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+    .stats-bar {
+      display: flex; gap: 20px; background: var(--bg3);
+      border: 1px solid #2a2010; border-radius: 4px;
+      padding: 10px 16px; margin-bottom: 16px;
+    }
+    .stat { text-align: center; }
+    .stat-val { font-size: 22px; font-weight: 700; color: var(--gold); }
+    .stat-lbl { font-size: 11px; color: var(--muted); }
+
+    #mob-list { display: flex; flex-direction: column; gap: 8px; }
+    .mob-card {
+      background: var(--bg3); border: 1px solid #2a2010;
+      border-radius: 4px; overflow: hidden;
+    }
+    .mob-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 14px; cursor: pointer; user-select: none;
+      transition: background 0.15s;
+    }
+    .mob-header:hover { background: #221a08; }
+    .mob-name { color: var(--mob); font-weight: 600; font-size: 14px; }
+    .mob-meta { color: var(--muted); font-size: 12px; }
+    .mob-toggle { color: var(--muted); font-size: 12px; }
+    .mob-items { padding: 0 14px 10px 14px; display: none; }
+    .mob-items.open { display: block; }
+    .item-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 5px 0; border-bottom: 1px solid #1a1408; font-size: 13px;
+    }
+    .item-row:last-child { border-bottom: none; }
+    .item-name { display: flex; align-items: center; gap: 8px; }
+    .item-drops { color: var(--muted); font-size: 12px; }
+    .q0{color:var(--q0)}.q1{color:var(--q1)}.q2{color:var(--q2)}
+    .q3{color:var(--q3)}.q4{color:var(--q4)}.q5{color:var(--q5)}
+    .q-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .q-dot-0{background:var(--q0)}.q-dot-1{background:var(--q1)}.q-dot-2{background:var(--q2)}
+    .q-dot-3{background:var(--q3)}.q-dot-4{background:var(--q4)}.q-dot-5{background:var(--q5)}
+
+    a.item-link { text-decoration: none; transition: opacity 0.15s; }
+    a.item-link:hover { opacity: 0.75; text-decoration: underline; }
+
+    a.npc-link {
+      font-size: 11px; color: #5ab4ff; text-decoration: none;
+      border: 1px solid #1a3a5a; border-radius: 3px;
+      padding: 1px 5px; margin-left: 6px; vertical-align: middle;
+      transition: background 0.15s;
+    }
+    a.npc-link:hover { background: #1a3a5a; }
+
+    .mob-coords { color: #556; font-size: 11px; margin-left: 8px; }
+
+    input[type="text"] {
+      width: 100%; background: #05030200; border: 1px solid var(--border);
+      border-radius: 4px; color: var(--text); font-size: 13px;
+      padding: 8px 12px; outline: none; margin-bottom: 14px;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus { border-color: var(--gold); }
+    input[type="text"]::placeholder { color: #555; }
+
+    .info { color: var(--muted); font-size: 13px; text-align: center; padding: 24px; }
+    .alert {
+      padding: 10px 14px; border-radius: 4px; font-size: 13px;
+      margin-top: 10px; display: none;
+    }
+    .alert-ok  { background: #0e2e10; border: 1px solid #1eff00; color: #1eff00; }
+    .alert-err { background: #2e0e0e; border: 1px solid #ff4444; color: #ff6666; }
+    .alert.show { display: block; }
+    .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+    footer {
+      border-top: 1px solid #1a1408; padding: 16px 32px;
+      text-align: center; color: var(--muted); font-size: 12px; margin-top: 32px;
+    }
+
+    /* classicdb tooltip overrides */
+    .wowhead-tooltip { font-family: 'Segoe UI', sans-serif !important; }
+
+    /* Custom tooltip fallback */
+    #rtsw-tip {
+      display: none; position: fixed; z-index: 9999;
+      background: #0d0b07; border: 1px solid var(--border);
+      border-radius: 4px; padding: 10px 14px;
+      min-width: 190px; max-width: 280px;
+      pointer-events: none; font-size: 13px;
+      box-shadow: 3px 3px 12px #000c;
+    }
+    #rtsw-tip .t-name  { font-weight: 700; margin-bottom: 3px; }
+    #rtsw-tip .t-qual  { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    #rtsw-tip .t-stats { color: var(--text); }
+    #rtsw-tip .t-pct   { color: var(--gold); font-weight: 700; }
+    #rtsw-tip .t-link  { margin-top: 8px; font-size: 11px; color: #5ab4ff; }
+    #rtsw-tip .t-div   { border-top: 1px solid #2a2010; margin: 7px 0; }
+  </style>
+  <script>var whTooltips = {colorLinks: false, iconSize: 'medium', renameLinks: false};</script>
+  <script src="https://classicdb.ch/tooltips" async></script>
+</head>
+<body>
+
+<div id="rtsw-tip">
+  <div class="t-name" id="tip-name"></div>
+  <div class="t-qual" id="tip-qual"></div>
+  <div class="t-div"></div>
+  <div class="t-stats"><span id="tip-drops"></span> drops &nbsp;·&nbsp; <span class="t-pct" id="tip-pct"></span></div>
+  <div class="t-link" id="tip-link"></div>
+</div>
+
+<header>
+  <div>
+    <h1>KZ RareTracker-SW</h1>
+    <span>Banco de Dados de Loot — SandWorlds 1.12.1</span>
+  </div>
+  <div class="badge">RTSW1</div>
+</header>
+
+<main>
+  <div style="display:flex;flex-direction:column;gap:20px;">
+
+    <div class="card">
+      <h2>Importar do Addon</h2>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:10px;">
+        No jogo: <strong style="color:var(--gold)">/rt</strong> → aba <strong style="color:var(--gold)">Loot DB</strong> → <strong style="color:var(--gold)">Exportar para o Site</strong> → copie o código e cole abaixo.
+      </p>
+      <textarea id="import-input" rows="4" placeholder="Cole o código RTSW1 aqui..."></textarea>
+      <div class="actions">
+        <button class="btn btn-green" onclick="doImport()">Importar Dados</button>
+        <button class="btn btn-sm" style="background:none;border:1px solid #444;color:#888;" onclick="clearAll()">Limpar Tudo</button>
+      </div>
+      <div id="import-alert" class="alert"></div>
+    </div>
+
+    <div class="card">
+      <h2>Exportar para o Addon</h2>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:10px;">
+        Gera um código com todos os dados do site. Copie e cole no jogo: <strong style="color:var(--gold)">/rt</strong> → <strong style="color:var(--gold)">Loot DB</strong> → <strong style="color:var(--gold)">Importar do Site</strong>.
+      </p>
+      <textarea id="export-output" rows="4" readonly placeholder="(importe dados primeiro)"></textarea>
+      <div class="actions">
+        <button class="btn btn-gold" onclick="doExport()">Gerar Código</button>
+        <button class="btn btn-blue btn-sm" onclick="copyExport()">Copiar</button>
+      </div>
+      <div id="export-alert" class="alert"></div>
+    </div>
+
+    <div class="card">
+      <h2>Como Funciona</h2>
+      <ul style="color:var(--muted);font-size:12px;line-height:1.9;padding-left:16px;">
+        <li>Cada player acumula loot localmente no addon</li>
+        <li>Exporte seu código e importe aqui</li>
+        <li>O site merge os dados de todos os players</li>
+        <li>Gere um código atualizado e importe no jogo</li>
+        <li>Ideal para itens <span style="color:var(--q4)">custom</span> que não existem em outros databases</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" style="height:fit-content;">
+    <h2>Database de Loot</h2>
+
+    <div id="stats-bar" class="stats-bar" style="display:none;">
+      <div class="stat"><div class="stat-val" id="stat-mobs">0</div><div class="stat-lbl">Mobs</div></div>
+      <div class="stat"><div class="stat-val" id="stat-kills">0</div><div class="stat-lbl">Kills</div></div>
+      <div class="stat"><div class="stat-val" id="stat-items">0</div><div class="stat-lbl">Itens únicos</div></div>
+      <div class="stat"><div class="stat-val" id="stat-drops">0</div><div class="stat-lbl">Drops totais</div></div>
+    </div>
+
+    <input type="text" id="search" placeholder="Filtrar por mob ou item..." oninput="renderList()" />
+
+    <div id="mob-list">
+      <div class="info">Nenhum dado importado ainda.</div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  KZ RareTracker-SW &nbsp;·&nbsp; SandWorlds 1.12.1 &nbsp;·&nbsp; Dados armazenados localmente no navegador
+</footer>
+
+<script>
+// ===================== DATA =====================
+let DB = {};
+
+function loadFromStorage() {
+  try { const r = localStorage.getItem("rtsw_lootdb"); if (r) DB = JSON.parse(r); } catch(e) { DB = {}; }
+}
+function saveToStorage() { localStorage.setItem("rtsw_lootdb", JSON.stringify(DB)); }
+
+// ===================== PARSE / GENERATE =====================
+// Format: RTSW1;MobName@npcId@x@y,kills,itemId:name:quality:drops|...;...
+// The @meta part is optional (backward compat with old codes without it)
+
+function parseCode(code) {
+  code = (code || "").trim();
+  if (!code.startsWith("RTSW1")) return null;
+  const entries = code.split(";");
+  const result = {};
+  for (let i = 1; i < entries.length; i++) {
+    const entry = entries[i].trim();
+    if (!entry) continue;
+    const fc = entry.indexOf(",");
+    if (fc === -1) continue;
+    const mobMeta = entry.substring(0, fc);
+    const rest    = entry.substring(fc + 1);
+
+    // Parse optional @npcId@x@y from mob meta
+    let mobName = mobMeta, npcId = "0", mx = 0, my = 0;
+    const atIdx = mobMeta.indexOf("@");
+    if (atIdx !== -1) {
+      const mp = mobMeta.split("@");
+      mobName = mp[0];
+      npcId   = mp[1] || "0";
+      mx      = parseFloat(mp[2]) || 0;
+      my      = parseFloat(mp[3]) || 0;
+    }
+
+    const sc = rest.indexOf(",");
+    let kills, itemsStr;
+    if (sc === -1) { kills = parseInt(rest) || 0; itemsStr = ""; }
+    else           { kills = parseInt(rest.substring(0, sc)) || 0; itemsStr = rest.substring(sc + 1); }
+
+    if (!result[mobName]) result[mobName] = { kills: 0, items: [] };
+    if (kills > result[mobName].kills) result[mobName].kills = kills;
+    if (npcId && npcId !== "0") result[mobName].npcId = npcId;
+    if (mx || my) { result[mobName].x = mx; result[mobName].y = my; }
+
+    if (itemsStr) {
+      for (const ie of itemsStr.split("|")) {
+        const parts = ie.split(":");
+        if (parts.length < 4) continue;
+        const [itemId, itemName, quality, drops] = parts;
+        if (!itemName) continue;
+        const existing = result[mobName].items.find(x => x.name === itemName);
+        if (existing) { existing.drops = Math.max(existing.drops || 0, parseInt(drops) || 1); }
+        else { result[mobName].items.push({ id: itemId, name: itemName, quality: parseInt(quality)||1, drops: parseInt(drops)||1 }); }
+      }
+    }
+  }
+  return result;
+}
+
+function generateCode(db) {
+  const parts = ["RTSW1"];
+  const sorted = Object.entries(db).sort((a,b) => (b[1].kills||0) - (a[1].kills||0));
+  for (const [mobName, data] of sorted) {
+    if (!data.kills || data.kills <= 0) continue;
+    const npcId = data.npcId || "0";
+    const mx    = (data.x || 0).toFixed(1);
+    const my    = (data.y || 0).toFixed(1);
+    const mobMeta = `${mobName}@${npcId}@${mx}@${my}`;
+    let mobStr = `${mobMeta},${data.kills}`;
+    if (data.items && data.items.length > 0) {
+      const itemParts = data.items.map(it => `${it.id}:${it.name}:${it.quality}:${it.drops}`);
+      mobStr += "," + itemParts.join("|");
+    }
+    parts.push(mobStr);
+  }
+  return parts.join(";");
+}
+
+// ===================== MERGE =====================
+function mergeInto(target, source) {
+  let newMobs = 0, newItems = 0;
+  for (const [mobName, data] of Object.entries(source)) {
+    if (!target[mobName]) { target[mobName] = { kills: 0, items: [] }; newMobs++; }
+    if (data.kills > target[mobName].kills) target[mobName].kills = data.kills;
+    if (data.npcId && data.npcId !== "0") target[mobName].npcId = data.npcId;
+    if (data.x) target[mobName].x = data.x;
+    if (data.y) target[mobName].y = data.y;
+    for (const item of (data.items || [])) {
+      const existing = target[mobName].items.find(x => x.name === item.name);
+      if (existing) { existing.drops = Math.max(existing.drops || 0, item.drops); }
+      else { target[mobName].items.push({ ...item }); newItems++; }
+    }
+  }
+  return { newMobs, newItems };
+}
+
+// ===================== UI =====================
+function showAlert(id, msg, ok) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = "alert show " + (ok ? "alert-ok" : "alert-err");
+  setTimeout(() => el.classList.remove("show"), 4000);
+}
+
+function doImport() {
+  const code = document.getElementById("import-input").value.trim();
+  if (!code) { showAlert("import-alert", "Cole um código primeiro.", false); return; }
+  const parsed = parseCode(code);
+  if (!parsed) { showAlert("import-alert", "Código inválido. Deve começar com RTSW1.", false); return; }
+  const { newMobs, newItems } = mergeInto(DB, parsed);
+  saveToStorage(); renderList(); updateStats();
+  showAlert("import-alert", `Importado! +${newMobs} mobs novos, +${newItems} itens novos.`, true);
+  document.getElementById("import-input").value = "";
+}
+
+function doExport() {
+  if (Object.keys(DB).length === 0) { showAlert("export-alert", "Nenhum dado para exportar.", false); return; }
+  document.getElementById("export-output").value = generateCode(DB);
+  showAlert("export-alert", "Código gerado! Copie e cole no addon.", true);
+}
+
+function copyExport() {
+  const ta = document.getElementById("export-output");
+  if (!ta.value) { doExport(); return; }
+  ta.select(); document.execCommand("copy");
+  showAlert("export-alert", "Copiado para a área de transferência!", true);
+}
+
+function clearAll() {
+  if (!confirm("Apagar todos os dados salvos no site?")) return;
+  DB = {}; saveToStorage(); renderList(); updateStats();
+  document.getElementById("export-output").value = "";
+}
+
+function updateStats() {
+  let tm = 0, tk = 0, ti = 0, td = 0;
+  for (const data of Object.values(DB)) {
+    if (data.kills > 0) {
+      tm++; tk += data.kills;
+      for (const item of (data.items || [])) { ti++; td += item.drops || 1; }
+    }
+  }
+  document.getElementById("stat-mobs").textContent  = tm;
+  document.getElementById("stat-kills").textContent = tk;
+  document.getElementById("stat-items").textContent = ti;
+  document.getElementById("stat-drops").textContent = td;
+  document.getElementById("stats-bar").style.display = tm > 0 ? "flex" : "none";
+}
+
+const Q_CLASS = ["q0","q1","q2","q3","q4","q5"];
+const Q_DOT   = ["q-dot-0","q-dot-1","q-dot-2","q-dot-3","q-dot-4","q-dot-5"];
+const Q_NAME  = ["Pobre","Comum","Incomum","Raro","Épico","Lendário"];
+const Q_COLOR = ["#9d9d9d","#ffffff","#1eff00","#0070dd","#a335ee","#ff8000"];
+
+function escHtml(s) {
+  return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function renderList() {
+  const filter = (document.getElementById("search").value || "").toLowerCase();
+  const list = document.getElementById("mob-list");
+
+  const entries = Object.entries(DB)
+    .filter(([n,d]) => d.kills > 0)
+    .sort((a,b) => (b[1].kills||0) - (a[1].kills||0));
+
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="info">Nenhum dado importado ainda.</div>';
+    return;
+  }
+
+  const filtered = entries.filter(([mobName, data]) => {
+    if (!filter) return true;
+    if (mobName.toLowerCase().includes(filter)) return true;
+    if ((data.items||[]).some(it => it.name.toLowerCase().includes(filter))) return true;
+    return false;
+  });
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="info">Nenhum resultado para "${filter}".</div>`;
+    return;
+  }
+
+  // Desativa tooltip customizado se classicdb carregou (ele assume o controle)
+  window._cdbActive = (typeof $WH !== 'undefined');
+
+  list.innerHTML = filtered.map(([mobName, data]) => {
+
+    const itemCount = (data.items||[]).length;
+    const openClass = filter ? "open" : "";
+    const id = "mob-" + mobName.replace(/[^a-z0-9]/gi,"_");
+
+    // NPC link para classicdb
+    const npcLink = (data.npcId && data.npcId !== "0")
+      ? `<a href="https://classicdb.ch/?npc=${data.npcId}" class="npc-link" target="_blank" title="Ver no ClassicDB">↗ DB</a>`
+      : "";
+
+    // Coordenadas
+    const coordStr = (data.x || data.y)
+      ? `<span class="mob-coords">(${(data.x||0).toFixed(1)}, ${(data.y||0).toFixed(1)})</span>`
+      : "";
+
+    const itemsHtml = (data.items||[])
+      .filter(it => !filter || it.name.toLowerCase().includes(filter) || mobName.toLowerCase().includes(filter))
+      .sort((a,b) => (b.quality||1) - (a.quality||1))
+      .map(it => {
+        const q = Math.min(Math.max(it.quality||1, 0), 5);
+        const pct = data.kills > 0 ? ((it.drops/data.kills)*100).toFixed(1) : "?";
+        const hasId = it.id && it.id !== "0";
+
+        // Dados para tooltip customizado
+        const tipJson = encodeURIComponent(JSON.stringify({
+          name: it.name, q, drops: it.drops, kills: data.kills, id: it.id||"0"
+        }));
+
+        const nameHtml = hasId
+          ? `<a href="https://classicdb.ch/?item=${it.id}" rel="item=${it.id}" class="item-link ${Q_CLASS[q]}" target="_blank" data-tip="${tipJson}">${escHtml(it.name)}</a>`
+          : `<span class="${Q_CLASS[q]}" data-tip="${tipJson}">${escHtml(it.name)}</span>`;
+
+        return `<div class="item-row">
+          <div class="item-name">
+            <div class="q-dot ${Q_DOT[q]}"></div>
+            ${nameHtml}
+            <span style="color:var(--muted);font-size:11px;">${Q_NAME[q]}</span>
+          </div>
+          <div style="display:flex;gap:14px;align-items:center;">
+            <span class="item-drops">${it.drops}x</span>
+            <span style="color:var(--gold);font-weight:700;font-size:12px;min-width:42px;text-align:right;">${pct}%</span>
+          </div>
+        </div>`;
+      }).join("");
+
+    return `<div class="mob-card">
+      <div class="mob-header" onclick="toggleMob('${id}')">
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+          <span class="mob-name">${escHtml(mobName)}</span>
+          ${npcLink}
+          ${coordStr}
+          <span class="mob-meta">&nbsp;${data.kills} kills · ${itemCount} itens</span>
+        </div>
+        <span class="mob-toggle" id="${id}-tog">${openClass?"▲":"▼"}</span>
+      </div>
+      <div class="mob-items ${openClass}" id="${id}">
+        ${itemsHtml || '<div style="color:var(--muted);font-size:12px;padding:6px 0;">Sem itens registrados.</div>'}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function refreshCdbTooltips() {
+  // Re-escaneia conteúdo dinâmico para o classicdb tooltip
+  try {
+    if (window.$WH) {
+      window._cdbActive = true;
+      if ($WH.Tooltip && $WH.Tooltip.init)    $WH.Tooltip.init();
+      else if ($WH.Tooltip && $WH.Tooltip.enable) $WH.Tooltip.enable();
+      else if ($WH.init) $WH.init();
+    }
+  } catch(e) {}
+}
+
+function toggleMob(id) {
+  const el = document.getElementById(id);
+  const tog = document.getElementById(id+"-tog");
+  if (el.classList.contains("open")) { el.classList.remove("open"); tog.textContent="▼"; }
+  else { el.classList.add("open"); tog.textContent="▲"; }
+}
+
+// ===================== TOOLTIP CUSTOMIZADO =====================
+(function() {
+  const tip  = document.getElementById("rtsw-tip");
+  const tName  = document.getElementById("tip-name");
+  const tQual  = document.getElementById("tip-qual");
+  const tDrops = document.getElementById("tip-drops");
+  const tPct   = document.getElementById("tip-pct");
+  const tLink  = document.getElementById("tip-link");
+
+  document.addEventListener("mousemove", function(e) {
+    if (tip.style.display === "block") {
+      const x = Math.min(e.clientX + 18, window.innerWidth  - tip.offsetWidth  - 8);
+      const y = Math.min(e.clientY + 14, window.innerHeight - tip.offsetHeight - 8);
+      tip.style.left = x + "px";
+      tip.style.top  = y + "px";
+    }
+  });
+
+  document.addEventListener("mouseover", function(e) {
+    const el = e.target.closest("[data-tip]");
+    if (!el) { tip.style.display = "none"; return; }
+    try {
+      const d = JSON.parse(decodeURIComponent(el.dataset.tip));
+      const q = Math.min(Math.max(d.q||1, 0), 5);
+      const pct = d.kills > 0 ? ((d.drops/d.kills)*100).toFixed(1) : "?";
+      tName.textContent  = d.name;
+      tName.style.color  = Q_COLOR[q];
+      tQual.textContent  = Q_NAME[q];
+      tDrops.textContent = d.drops + "x drops";
+      tPct.textContent   = pct + "%";
+      tLink.innerHTML    = (d.id && d.id !== "0")
+        ? `<a href="https://classicdb.ch/?item=${d.id}" target="_blank" style="color:#5ab4ff;text-decoration:none;">↗ Ver no ClassicDB</a>`
+        : "";
+      tip.style.display = "block";
+    } catch(err) { tip.style.display = "none"; }
+  });
+
+  document.addEventListener("mouseout", function(e) {
+    const el = e.target.closest("[data-tip]");
+    if (el && !el.contains(e.relatedTarget)) tip.style.display = "none";
+  });
+})();
+
+// ===================== INIT =====================
+loadFromStorage();
+renderList();
+updateStats();
+</script>
+</body>
+</html>
