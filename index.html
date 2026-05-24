@@ -471,9 +471,10 @@ function renderList() {
     return `<div class="mob-card">
       <div class="mob-header" onclick="toggleMob('${id}')">
         <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+          <span class="mob-name">${escHtml(mobName)}</span>
           ${(data.npcId && data.npcId !== "0")
-            ? `<a href="https://classicdb.ch/?npc=${data.npcId}" rel="npc=${data.npcId}" class="mob-name" target="_blank" style="text-decoration:none;">${escHtml(mobName)}</a>`
-            : `<span class="mob-name">${escHtml(mobName)}</span>`}
+            ? `<a href="https://classicdb.ch/?npc=${data.npcId}" rel="npc=${data.npcId}" class="npc-link" target="_blank" onclick="event.stopPropagation()">↗ DB</a>`
+            : ""}
           ${coordStr}
           <span class="mob-meta">&nbsp;${data.kills} kills · ${itemCount} itens</span>
         </div>
