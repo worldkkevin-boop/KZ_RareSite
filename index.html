@@ -182,7 +182,7 @@
     #rtsw-tip .t-div   { border-top: 1px solid #2a2010; margin: 7px 0; }
   </style>
   <script>var whTooltips = {colorLinks: false, iconSize: 'medium', renameLinks: false};</script>
-  <script src="https://classicdb.ch/tooltips" async></script>
+  <script src="https://classicdb.ch/templates/wowhead/js/power.js" async></script>
 </head>
 <body>
 
@@ -522,12 +522,13 @@ function renderList() {
 
 function refreshCdbTooltips() {
   try {
-    if (window.$WH) {
+    const WoWH = window.$WH || window.WH;
+    if (WoWH) {
       window._cdbActive = true;
-      if ($WH.Tooltip && $WH.Tooltip.bindTriggers) $WH.Tooltip.bindTriggers();
-      else if ($WH.Tooltip && $WH.Tooltip.init)    $WH.Tooltip.init();
-      else if ($WH.Tooltip && $WH.Tooltip.enable)  $WH.Tooltip.enable();
-      else if ($WH.init) $WH.init();
+      if (WoWH.Tooltip && WoWH.Tooltip.bindTriggers) WoWH.Tooltip.bindTriggers();
+      else if (WoWH.Tooltip && WoWH.Tooltip.init)    WoWH.Tooltip.init();
+      else if (WoWH.Tooltip && WoWH.Tooltip.enable)  WoWH.Tooltip.enable();
+      else if (WoWH.init) WoWH.init();
     } else {
       window._cdbActive = false;
     }
@@ -564,7 +565,8 @@ function toggleMob(id) {
     if (!el) { tip.style.display = "none"; return; }
     // Se classicdb carregou e o item tem rel="item=X", deixa ele assumir
     const rel = el.getAttribute("rel") || "";
-    if (window._cdbActive && rel.indexOf("item=") === 0) { tip.style.display = "none"; return; }
+    const cdbLoaded = !!(window.$WH || window.WH);
+    if (cdbLoaded && rel.indexOf("item=") === 0) { tip.style.display = "none"; return; }
     try {
       const d = JSON.parse(decodeURIComponent(el.dataset.tip));
       const q = Math.min(Math.max(d.q||1, 0), 5);
