@@ -165,34 +165,11 @@
     /* classicdb tooltip overrides */
     .wowhead-tooltip { font-family: 'Segoe UI', sans-serif !important; }
 
-    /* Custom tooltip fallback */
-    #rtsw-tip {
-      display: none; position: fixed; z-index: 9999;
-      background: #0d0b07; border: 1px solid var(--border);
-      border-radius: 4px; padding: 10px 14px;
-      min-width: 190px; max-width: 280px;
-      pointer-events: none; font-size: 13px;
-      box-shadow: 3px 3px 12px #000c;
-    }
-    #rtsw-tip .t-name  { font-weight: 700; margin-bottom: 3px; }
-    #rtsw-tip .t-qual  { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
-    #rtsw-tip .t-stats { color: var(--text); }
-    #rtsw-tip .t-pct   { color: var(--gold); font-weight: 700; }
-    #rtsw-tip .t-link  { margin-top: 8px; font-size: 11px; color: #5ab4ff; }
-    #rtsw-tip .t-div   { border-top: 1px solid #2a2010; margin: 7px 0; }
   </style>
   <script>var whTooltips = {colorLinks: false, iconSize: 'medium', renameLinks: false};</script>
   <script src="https://classicdb.ch/templates/wowhead/js/power.js" async></script>
 </head>
 <body>
-
-<div id="rtsw-tip">
-  <div class="t-name" id="tip-name"></div>
-  <div class="t-qual" id="tip-qual"></div>
-  <div class="t-div"></div>
-  <div class="t-stats"><span id="tip-drops"></span> drops &nbsp;·&nbsp; <span class="t-pct" id="tip-pct"></span></div>
-  <div class="t-link" id="tip-link"></div>
-</div>
 
 <header>
   <div>
@@ -461,11 +438,6 @@ function renderList() {
     const openClass = filter ? "open" : "";
     const id = "mob-" + mobName.replace(/[^a-z0-9]/gi,"_");
 
-    // NPC link para classicdb
-    const npcLink = (data.npcId && data.npcId !== "0")
-      ? `<a href="https://classicdb.ch/?npc=${data.npcId}" class="npc-link" target="_blank" title="Ver no ClassicDB">↗ DB</a>`
-      : "";
-
     // Coordenadas
     const coordStr = (data.x || data.y)
       ? `<span class="mob-coords">(${(data.x||0).toFixed(1)}, ${(data.y||0).toFixed(1)})</span>`
@@ -479,14 +451,9 @@ function renderList() {
         const pct = data.kills > 0 ? ((it.drops/data.kills)*100).toFixed(1) : "?";
         const hasId = it.id && it.id !== "0";
 
-        // Dados para tooltip customizado
-        const tipJson = encodeURIComponent(JSON.stringify({
-          name: it.name, q, drops: it.drops, kills: data.kills, id: it.id||"0"
-        }));
-
         const nameHtml = hasId
-          ? `<a href="https://classicdb.ch/?item=${it.id}" rel="item=${it.id}" class="item-link ${Q_CLASS[q]}" target="_blank" data-tip="${tipJson}">${escHtml(it.name)}</a>`
-          : `<span class="${Q_CLASS[q]}" data-tip="${tipJson}">${escHtml(it.name)}</span>`;
+          ? `<a href="https://classicdb.ch/?item=${it.id}" rel="item=${it.id}" class="item-link ${Q_CLASS[q]}" target="_blank">${escHtml(it.name)}</a>`
+          : `<span class="${Q_CLASS[q]}">${escHtml(it.name)}</span>`;
 
         return `<div class="item-row">
           <div class="item-name">
@@ -504,8 +471,9 @@ function renderList() {
     return `<div class="mob-card">
       <div class="mob-header" onclick="toggleMob('${id}')">
         <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
-          <span class="mob-name">${escHtml(mobName)}</span>
-          ${npcLink}
+          ${(data.npcId && data.npcId !== "0")
+            ? `<a href="https://classicdb.ch/?npc=${data.npcId}" rel="npc=${data.npcId}" class="mob-name" target="_blank" style="text-decoration:none;">${escHtml(mobName)}</a>`
+            : `<span class="mob-name">${escHtml(mobName)}</span>`}
           ${coordStr}
           <span class="mob-meta">&nbsp;${data.kills} kills · ${itemCount} itens</span>
         </div>
@@ -542,52 +510,6 @@ function toggleMob(id) {
   else { el.classList.add("open"); tog.textContent="▲"; setTimeout(refreshCdbTooltips, 100); }
 }
 
-// ===================== TOOLTIP CUSTOMIZADO =====================
-(function() {
-  const tip  = document.getElementById("rtsw-tip");
-  const tName  = document.getElementById("tip-name");
-  const tQual  = document.getElementById("tip-qual");
-  const tDrops = document.getElementById("tip-drops");
-  const tPct   = document.getElementById("tip-pct");
-  const tLink  = document.getElementById("tip-link");
-
-  document.addEventListener("mousemove", function(e) {
-    if (tip.style.display === "block") {
-      const x = Math.min(e.clientX + 18, window.innerWidth  - tip.offsetWidth  - 8);
-      const y = Math.min(e.clientY + 14, window.innerHeight - tip.offsetHeight - 8);
-      tip.style.left = x + "px";
-      tip.style.top  = y + "px";
-    }
-  });
-
-  document.addEventListener("mouseover", function(e) {
-    const el = e.target.closest("[data-tip]");
-    if (!el) { tip.style.display = "none"; return; }
-    // Se classicdb carregou e o item tem rel="item=X", deixa ele assumir
-    const rel = el.getAttribute("rel") || "";
-    const cdbLoaded = !!(window.$WH || window.WH);
-    if (cdbLoaded && rel.indexOf("item=") === 0) { tip.style.display = "none"; return; }
-    try {
-      const d = JSON.parse(decodeURIComponent(el.dataset.tip));
-      const q = Math.min(Math.max(d.q||1, 0), 5);
-      const pct = d.kills > 0 ? ((d.drops/d.kills)*100).toFixed(1) : "?";
-      tName.textContent  = d.name;
-      tName.style.color  = Q_COLOR[q];
-      tQual.textContent  = Q_NAME[q];
-      tDrops.textContent = d.drops + "x drops";
-      tPct.textContent   = pct + "%";
-      tLink.innerHTML    = (d.id && d.id !== "0")
-        ? `<a href="https://classicdb.ch/?item=${d.id}" target="_blank" style="color:#5ab4ff;text-decoration:none;">↗ Ver no ClassicDB</a>`
-        : "";
-      tip.style.display = "block";
-    } catch(err) { tip.style.display = "none"; }
-  });
-
-  document.addEventListener("mouseout", function(e) {
-    const el = e.target.closest("[data-tip]");
-    if (el && !el.contains(e.relatedTarget)) tip.style.display = "none";
-  });
-})();
 
 // ===================== INIT =====================
 loadFromStorage();
